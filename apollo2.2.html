@@ -32,7 +32,7 @@
   <div class="overlay"></div>
 
   <div class="container">
-    <h2>Lino</h2>
+    <h2>lino</h2>
     <div class="form-group">
       <label for="productName">Nome do Produto (até 30 caracteres):</label>
       <input type="text" class="form-control" id="productName" maxlength="30">
@@ -77,6 +77,8 @@
       var productPerimeter = document.getElementById("productPerimeter").value.trim();
       var productCut = document.getElementById("productCut").value.trim();
       var productComments = document.getElementById("productComments").value.trim();
+      var currentDate = new Date();
+      var formattedDate = currentDate.toLocaleDateString('pt-BR') + ' ' + currentDate.toLocaleTimeString('pt-BR');
 
       if (productName === "") {
         alert("Por favor, insira o nome do produto.");
@@ -99,17 +101,21 @@
       });
 
       if (existingProductIndex !== -1) {
-        // Se o produto já existe, substitua-o
-        products[existingProductIndex] = { name: productName, perimeter: parseFloat(productPerimeter), cut: parseFloat(productCut), comments: productComments, created_at: new Date() };
+        products[existingProductIndex].cut = parseFloat(productCut);
+        products[existingProductIndex].comments.push({ text: productComments, date: formattedDate });
       } else {
-        // Se não, adicione o novo produto
-        products.push({ name: productName, perimeter: parseFloat(productPerimeter), cut: parseFloat(productCut), comments: productComments, created_at: new Date() });
+        products.push({
+          name: productName,
+          perimeter: parseFloat(productPerimeter),
+          cut: parseFloat(productCut),
+          comments: [{ text: productComments, date: formattedDate }],
+          created_at: new Date()
+        });
       }
 
       localStorage.setItem("products", JSON.stringify(products));
       loadProducts();
 
-      // Limpar os campos após salvar
       document.getElementById("productName").value = "";
       document.getElementById("productPerimeter").value = "";
       document.getElementById("productCut").value = "";
@@ -146,12 +152,33 @@
     function showSelectedProduct() {
       var selectedProduct = JSON.parse(document.getElementById("productSelect").value);
       var detailsContainer = document.getElementById("selectedProductDetails");
+
+      if (!selectedProduct) {
+        detailsContainer.innerHTML = "";
+        return;
+      }
+
+      var commentsHtml = selectedProduct.comments.map(function(comment) {
+        return `<tr><td>${comment.text}</td><td>${comment.date}</td></tr>`;
+      }).join("");
+
       detailsContainer.innerHTML = `
         <h4>Dados do Produto Selecionado</h4>
         <p><strong>Nome:</strong> ${selectedProduct.name}</p>
         <p><strong>Perímetro:</strong> ${selectedProduct.perimeter}</p>
         <p><strong>Corte do Perímetro:</strong> ${selectedProduct.cut}</p>
-        <p><strong>Comentários:</strong> ${selectedProduct.comments}</p>
+        <h5>Comentários:</h5>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Comentário</th>
+              <th>Data</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${commentsHtml}
+          </tbody>
+        </table>
       `;
     }
 
@@ -164,7 +191,7 @@
 
       var products = JSON.parse(localStorage.getItem("products")) || [];
       var updatedProducts = products.filter(function(product) {
-        return JSON.stringify(product) !== document.getElementById("productSelect").value;
+        return product.name !== selectedProduct.name || product.perimeter !== selectedProduct.perimeter;
       });
 
       localStorage.setItem("products", JSON.stringify(updatedProducts));
