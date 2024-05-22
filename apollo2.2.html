@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aplicação de Produtos</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    body {
+      background: url('https://via.placeholder.com/1920x1080') no-repeat center center fixed;
+      background-size: cover;
+      position: relative;
+      font-family: Arial, sans-serif;
+    }
+
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255, 255, 255, 0.8); /* Opacidade de 80% */
+    }
+
+    .container {
+      margin-top: 30px;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      position: relative;
+      z-index: 1;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-control {
+      border-radius: 8px;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn {
+      border-radius: 8px;
+      padding: 10px 20px;
+      transition: background-color 0.3s ease;
+    }
+
+    .btn-primary {
+      background-color: #007bff;
+      border-color: #007bff;
+    }
+
+    .btn-primary:hover {
+      background-color: #0056b3;
+      border-color: #0056b3;
+    }
+
+    .btn-danger {
+      background-color: #dc3545;
+      border-color: #dc3545;
+    }
+
+    .btn-danger:hover {
+      background-color: #c82333;
+      border-color: #bd2130;
+    }
+
+    #selectedProductDetails {
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .feedback {
+      margin-top: 20px;
+      display: none;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .feedback-success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .feedback-error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+
+    table, th, td {
+      border: 1px solid #ddd;
+    }
+
+    th, td {
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay"></div>
+
+  <div class="container">
+    <h2>Cadastro de Produtos</h2>
+    <div class="form-group">
+      <label for="productName">Nome do Produto (até 30 caracteres):</label>
+      <input type="text" class="form-control" id="productName" maxlength="30">
+    </div>
+    <div class="form-group">
+      <label for="productPerimeter">Perímetro do Produto:</label>
+      <input type="number" class="form-control" id="productPerimeter" step="any">
+    </div>
+    <div class="form-group">
+      <label for="productCut">Corte do Perímetro:</label>
+      <input type="number" class="form-control" id="productCut" step="any">
+    </div>
+    <div class="form-group">
+      <label for="productComments">Comentários (até 200 caracteres):</label>
+      <input type="text" class="form-control" id="productComments" maxlength="200">
+    </div>
+    <button type="button" class="btn btn-primary" onclick="saveProduct()">Salvar</button>
+    <div id="saveFeedback" class="feedback feedback-success">Produto salvo com sucesso!</div>
+  </div>
+
+  <div class="container mt-5">
+    <h2>Histórico de Perímetros</h2>
+    <div class="form-group">
+      <label for="productSelect">Selecionar Produto:</label>
+      <select class="form-control" id="productSelect" onchange="showSelectedProduct()">
+        <option value="">Selecione um produto</option>
+      </select>
+    </div>
+    <button type="button" class="btn btn-danger" onclick="removeSelectedProduct()">Remover</button>
+    <div id="removeFeedback" class="feedback feedback-success">Produto removido com sucesso!</div>
+  </div>
+
+  <div class="container mt-3">
+    <div id="selectedProductDetails"></div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      loadProducts();
+    });
+
+    function saveProduct() {
+      var productName = document.getElementById("productName").value.trim().toUpperCase();
+      var productPerimeter = document.getElementById("productPerimeter").value.trim();
+      var productCut = document.getElementById("productCut").value.trim();
+      var productComments = document.getElementById("productComments").value.trim();
+      var currentDate = new Date();
+      var formattedDate = currentDate.toLocaleDateString('pt-BR') + ' ' + currentDate.toLocaleTimeString('pt-BR');
+
+      if (productName === "") {
+        alert("Por favor, insira o nome do produto.");
+        return;
+      }
+
+      if (isNaN(productPerimeter)) {
+        alert("O perímetro do produto deve ser um número.");
+        return;
+      }
+
+      if (isNaN(productCut)) {
+        alert("O corte do perímetro deve ser um número.");
+        return;
+      }
+
+      var products = JSON.parse(localStorage.getItem("products")) || [];
+      var existingProduct = products.find(function(product) {
+        return product.name === productName && product.perimeter === parseFloat(productPerimeter);
+      });
+
+      if (existingProduct) {
+        existingProduct.comments.push({ text: productComments, date: formattedDate });
+        existingProduct.cut = parseFloat(productCut);
+      } else {
+        products.push({
+          name: productName,
+          perimeter: parseFloat(productPerimeter),
+          cut: parseFloat(productCut),
+          comments: [{ text: productComments, date: formattedDate }],
+          created_at: new Date()
+        });
+      }
+
+      localStorage.setItem("products", JSON.stringify(products));
+      loadProducts();
+
+      document.getElementById("productName").value = "";
+      document.getElementById("productPerimeter").value = "";
+      document.getElementById("productCut").value = "";
+      document.getElementById("productComments").value = "";
+
+      var saveFeedback = document.getElementById("saveFeedback");
+      saveFeedback.style.display = "block";
+      setTimeout(function() {
+        saveFeedback.style.display = "none";
+      }, 3000);
+    }
+
+    function loadProducts() {
+      var products = JSON.parse(localStorage.getItem("products")) || [];
+      products.sort(function(a, b) {
+        var nameA = a.name.toUpperCase();
+        var nameB = b.name.toUpperCase();
+        if (nameA < nameB) {
+          return -1;
+        }
+        if (nameA > nameB) {
+          return 1;
+        }
+        return 0;
+      });
+
+      var select = document.getElementById("productSelect");
+      select.innerHTML = '<option value="">Selecione um produto</option>';
+
+      products.forEach(function(product) {
+        var option = document.createElement("option");
+        option.value = JSON.stringify(product);
+        option.textContent = product.name;
+        select.appendChild(option);
+      });
+    }
+
+    function showSelectedProduct() {
+      var selectedProduct = JSON.parse(document.getElementById("productSelect").value);
+      var detailsContainer = document.getElementById("selectedProductDetails");
+      if (!selectedProduct) {
+        detailsContainer.innerHTML = "";
+        return;
+      }
+      var commentsHtml = selectedProduct.comments.map(function(comment) {
+        return `<tr><td>${comment.text}</td><td>${comment.date}</td></tr>`;
+      }).join("");
+
+      detailsContainer.innerHTML = `
+        <h4>Dados do Produto Selecionado</h4>
+        <p><strong>Nome:</strong> ${selectedProduct.name}</p>
+        <p><strong>Perímetro:</strong> ${selectedProduct.perimeter}</p>
+        <p><strong>Corte do Perímetro:</strong> ${selectedProduct.cut}</p>
+        <h5>Comentários:</h5>
+        <table>
+          <thead>
+            <tr>
+              <th>Comentário</th>
+              <th>Data</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${commentsHtml}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function removeSelectedProduct() {
+      var selectedProduct = JSON.parse(document.getElementById("productSelect").value);
+      if (!selectedProduct) {
+        alert("Nenhum produto selecionado.");
+        return;
+      }
+
+      var products = JSON.parse(localStorage.getItem("products")) || [];
+      var updatedProducts = products.filter(function(product) {
+        return product.name !== selectedProduct.name || product.perimeter !== selectedProduct.perimeter;
+      });
+
+      localStorage.setItem("products", JSON.stringify(updatedProducts));
+      loadProducts();
+      document.getElementById("selectedProductDetails").innerHTML = "";
+
+      var removeFeedback = document.getElementById("removeFeedback");
+      removeFeedback.style.display = "block";
+      setTimeout(function() {
+        removeFeedback.style.display = "none";
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
