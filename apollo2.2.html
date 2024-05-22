@@ -32,21 +32,21 @@
   <div class="overlay"></div>
 
   <div class="container">
-    <h2>APOLLO</h2>
+    <h2>Cadastro de Produtos</h2>
     <div class="form-group">
-      <label for="productName">Nome do Produto:</label>
+      <label for="productName">Nome do Produto (até 30 caracteres):</label>
       <input type="text" class="form-control" id="productName" maxlength="30">
     </div>
     <div class="form-group">
-      <label for="productPerimeter">Perímetro:</label>
+      <label for="productPerimeter">Perímetro do Produto:</label>
       <input type="number" class="form-control" id="productPerimeter" step="any">
     </div>
     <div class="form-group">
-      <label for="productCut">Corte:</label>
+      <label for="productCut">Corte do Perímetro:</label>
       <input type="number" class="form-control" id="productCut" step="any">
     </div>
     <div class="form-group">
-      <label for="productComments">Comentários:</label>
+      <label for="productComments">Comentários (até 200 caracteres):</label>
       <input type="text" class="form-control" id="productComments" maxlength="200">
     </div>
     <button type="button" class="btn btn-primary" onclick="saveProduct()">Salvar</button>
@@ -102,6 +102,9 @@
 
       if (existingProductIndex !== -1) {
         products[existingProductIndex].cut = parseFloat(productCut);
+        if (!products[existingProductIndex].comments) {
+          products[existingProductIndex].comments = [];
+        }
         products[existingProductIndex].comments.push({ text: productComments, date: formattedDate });
       } else {
         products.push({
@@ -158,8 +161,12 @@
         return;
       }
 
-      var commentsHtml = selectedProduct.comments.map(function(comment) {
-        return `<tr><td>${comment.text}</td><td>${comment.date}</td></tr>`;
+      var commentsHtml = selectedProduct.comments.map(function(comment, index) {
+        return `<tr>
+                  <td>${comment.text}</td>
+                  <td>${comment.date}</td>
+                  <td><button class="btn btn-sm btn-danger" onclick="removeComment(${index})">Excluir</button></td>
+                </tr>`;
       }).join("");
 
       detailsContainer.innerHTML = `
@@ -173,6 +180,7 @@
             <tr>
               <th>Comentário</th>
               <th>Data</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -180,6 +188,25 @@
           </tbody>
         </table>
       `;
+    }
+
+    function removeComment(commentIndex) {
+      var selectedProduct = JSON.parse(document.getElementById("productSelect").value);
+      if (!selectedProduct) {
+        alert("Nenhum produto selecionado.");
+        return;
+      }
+
+      var products = JSON.parse(localStorage.getItem("products")) || [];
+      var productIndex = products.findIndex(function(product) {
+        return product.name === selectedProduct.name && product.perimeter === selectedProduct.perimeter;
+      });
+
+      if (productIndex !== -1) {
+        products[productIndex].comments.splice(commentIndex, 1);
+        localStorage.setItem("products", JSON.stringify(products));
+        showSelectedProduct();
+      }
     }
 
     function removeSelectedProduct() {
