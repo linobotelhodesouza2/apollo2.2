@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Projeto Lino </title>
-  <link rel="" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <title>Aplicação de Produtos</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
   <style>
     body {
       background: url('https://via.placeholder.com/1920x1080') no-repeat center center fixed;
@@ -32,7 +32,7 @@
   <div class="overlay"></div>
 
   <div class="container">
-    <h2>APOLLO</h2>
+    <h2>Lino</h2>
     <div class="form-group">
       <label for="productName">Nome do Produto:</label>
       <input type="text" class="form-control" id="productName" maxlength="30">
@@ -46,7 +46,7 @@
       <input type="number" class="form-control" id="productCut" step="any">
     </div>
     <div class="form-group">
-      <label for="productComments">Comentários:</label>
+      <label for="productComments"> </label>
       <input type="text" class="form-control" id="productComments" maxlength="200">
     </div>
     <button type="button" class="btn btn-primary" onclick="saveProduct()">Salvar</button>
@@ -61,6 +61,7 @@
       </select>
     </div>
     <button type="button" class="btn btn-danger" onclick="removeSelectedProduct()">Remover</button>
+    <button type="button" class="btn btn-secondary" onclick="downloadLog()">Baixar Log</button>
   </div>
 
   <div class="container mt-3">
@@ -146,14 +147,25 @@
 
       products.forEach(function(product) {
         var option = document.createElement("option");
-        option.value = JSON.stringify(product);
+        option.value = product.name + '|' + product.perimeter; // Use um identificador único
         option.textContent = product.name;
         select.appendChild(option);
       });
     }
 
     function showSelectedProduct() {
-      var selectedProduct = JSON.parse(document.getElementById("productSelect").value);
+      var select = document.getElementById("productSelect");
+      var selectedValue = select.value;
+      if (!selectedValue) {
+        document.getElementById("selectedProductDetails").innerHTML = "";
+        return;
+      }
+
+      var products = JSON.parse(localStorage.getItem("products")) || [];
+      var selectedProduct = products.find(function(product) {
+        return product.name + '|' + product.perimeter === selectedValue;
+      });
+
       var detailsContainer = document.getElementById("selectedProductDetails");
 
       if (!selectedProduct) {
@@ -165,7 +177,7 @@
         return `<tr>
                   <td>${comment.text}</td>
                   <td>${comment.date}</td>
-                  <td><button class="btn btn-sm btn-danger" onclick="removeComment(${index})">Excluir</button></td>
+                  <td><button class="btn btn-sm btn-danger" onclick="removeComment('${selectedProduct.name}', ${selectedProduct.perimeter}, ${index})">Excluir</button></td>
                 </tr>`;
       }).join("");
 
@@ -190,41 +202,52 @@
       `;
     }
 
-    function removeComment(commentIndex) {
-      var selectedProduct = JSON.parse(document.getElementById("productSelect").value);
-      if (!selectedProduct) {
-        alert("Nenhum produto selecionado.");
-        return;
-      }
-
+    function removeComment(productName, productPerimeter, commentIndex) {
       var products = JSON.parse(localStorage.getItem("products")) || [];
-      var productIndex = products.findIndex(function(product) {
-        return product.name === selectedProduct.name && product.perimeter === selectedProduct.perimeter;
+      var product = products.find(function(product) {
+        return product.name === productName && product.perimeter === productPerimeter;
       });
 
-      if (productIndex !== -1) {
-        products[productIndex].comments.splice(commentIndex, 1);
+      if (product) {
+        product.comments.splice(commentIndex, 1);
         localStorage.setItem("products", JSON.stringify(products));
         showSelectedProduct();
       }
     }
 
     function removeSelectedProduct() {
-      var selectedProduct = JSON.parse(document.getElementById("productSelect").value);
-      if (!selectedProduct) {
+      var select = document.getElementById("productSelect");
+      var selectedValue = select.value;
+      if (!selectedValue) {
         alert("Nenhum produto selecionado.");
         return;
       }
 
       var products = JSON.parse(localStorage.getItem("products")) || [];
       var updatedProducts = products.filter(function(product) {
-        return product.name !== selectedProduct.name || product.perimeter !== selectedProduct.perimeter;
+        return product.name + '|' + product.perimeter !== selectedValue;
       });
 
       localStorage.setItem("products", JSON.stringify(updatedProducts));
       loadProducts();
       document.getElementById("selectedProductDetails").innerHTML = "";
       alert("Produto removido com sucesso!");
+    }
+
+    function downloadLog() {
+      var products = JSON.parse(localStorage.getItem("products")) || [];
+      var log = products.map(function(product) {
+        var comments = product.comments.map(function(comment) {
+          return `    Comentário: ${comment.text}, Data: ${comment.date}`;
+        }).join('\n');
+        return `Produto: ${product.name}\nPerímetro: ${product.perimeter}\nCorte: ${product.cut}\nComentários:\n${comments}\n`;
+      }).join('\n');
+
+      var blob = new Blob([log], { type: 'text/plain' });
+      var link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'log.txt';
+      link.click();
     }
   </script>
 </body>
