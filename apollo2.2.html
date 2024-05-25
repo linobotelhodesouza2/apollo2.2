@@ -10,7 +10,6 @@
       background: url('https://via.placeholder.com/1920x1080') no-repeat center center fixed;
       background-size: cover;
       position: relative;
-      font-family: Arial, sans-serif;
     }
 
     .overlay {
@@ -23,95 +22,9 @@
     }
 
     .container {
-      margin-top: 30px;
-      padding: 20px;
-      background-color: #fff;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      margin-top: 20px;
       position: relative;
-      z-index: 1;
-    }
-
-    h2 {
-      margin-bottom: 20px;
-    }
-
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    .form-control {
-      border-radius: 8px;
-      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
-    }
-
-    .btn {
-      border-radius: 8px;
-      padding: 10px 20px;
-      transition: background-color 0.3s ease;
-    }
-
-    .btn-primary {
-      background-color: #007bff;
-      border-color: #007bff;
-    }
-
-    .btn-primary:hover {
-      background-color: #0056b3;
-      border-color: #0056b3;
-    }
-
-    .btn-danger {
-      background-color: #dc3545;
-      border-color: #dc3545;
-    }
-
-    .btn-danger:hover {
-      background-color: #c82333;
-      border-color: #bd2130;
-    }
-
-    #selectedProductDetails {
-      background-color: #f8f9fa;
-      border-radius: 8px;
-      padding: 20px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    }
-
-    .feedback {
-      margin-top: 20px;
-      display: none;
-      padding: 10px;
-      border-radius: 8px;
-    }
-
-    .feedback-success {
-      background-color: #d4edda;
-      color: #155724;
-    }
-
-    .feedback-error {
-      background-color: #f8d7da;
-      color: #721c24;
-    }
-
-    table {
-      width: 100%;
-      margin-top: 20px;
-      border-collapse: collapse;
-    }
-
-    table, th, td {
-      border: 1px solid #ddd;
-    }
-
-    th, td {
-      padding: 8px;
-      text-align: left;
-    }
-
-    th {
-      background-color: #f2f2f2;
+      z-index: 1; /* Garante que o conteúdo da página fique na frente do fundo abstrato */
     }
   </style>
 </head>
@@ -119,7 +32,7 @@
   <div class="overlay"></div>
 
   <div class="container">
-    <h2>Cadastro de Produtos</h2>
+    <h2>Produtos</h2>
     <div class="form-group">
       <label for="productName">Nome do Produto (até 30 caracteres):</label>
       <input type="text" class="form-control" id="productName" maxlength="30">
@@ -137,7 +50,6 @@
       <input type="text" class="form-control" id="productComments" maxlength="200">
     </div>
     <button type="button" class="btn btn-primary" onclick="saveProduct()">Salvar</button>
-    <div id="saveFeedback" class="feedback feedback-success">Produto salvo com sucesso!</div>
   </div>
 
   <div class="container mt-5">
@@ -149,7 +61,6 @@
       </select>
     </div>
     <button type="button" class="btn btn-danger" onclick="removeSelectedProduct()">Remover</button>
-    <div id="removeFeedback" class="feedback feedback-success">Produto removido com sucesso!</div>
   </div>
 
   <div class="container mt-3">
@@ -185,13 +96,16 @@
       }
 
       var products = JSON.parse(localStorage.getItem("products")) || [];
-      var existingProduct = products.find(function(product) {
+      var existingProductIndex = products.findIndex(function(product) {
         return product.name === productName && product.perimeter === parseFloat(productPerimeter);
       });
 
-      if (existingProduct) {
-        existingProduct.comments.push({ text: productComments, date: formattedDate });
-        existingProduct.cut = parseFloat(productCut);
+      if (existingProductIndex !== -1) {
+        products[existingProductIndex].cut = parseFloat(productCut);
+        if (!products[existingProductIndex].comments) {
+          products[existingProductIndex].comments = [];
+        }
+        products[existingProductIndex].comments.push({ text: productComments, date: formattedDate });
       } else {
         products.push({
           name: productName,
@@ -210,11 +124,7 @@
       document.getElementById("productCut").value = "";
       document.getElementById("productComments").value = "";
 
-      var saveFeedback = document.getElementById("saveFeedback");
-      saveFeedback.style.display = "block";
-      setTimeout(function() {
-        saveFeedback.style.display = "none";
-      }, 3000);
+      alert("Produto salvo com sucesso!");
     }
 
     function loadProducts() {
@@ -245,12 +155,18 @@
     function showSelectedProduct() {
       var selectedProduct = JSON.parse(document.getElementById("productSelect").value);
       var detailsContainer = document.getElementById("selectedProductDetails");
+
       if (!selectedProduct) {
         detailsContainer.innerHTML = "";
         return;
       }
-      var commentsHtml = selectedProduct.comments.map(function(comment) {
-        return `<tr><td>${comment.text}</td><td>${comment.date}</td></tr>`;
+
+      var commentsHtml = selectedProduct.comments.map(function(comment, index) {
+        return `<tr>
+                  <td>${comment.text}</td>
+                  <td>${comment.date}</td>
+                  <td><button class="btn btn-sm btn-danger" onclick="removeComment(${index})">Excluir</button></td>
+                </tr>`;
       }).join("");
 
       detailsContainer.innerHTML = `
@@ -259,11 +175,12 @@
         <p><strong>Perímetro:</strong> ${selectedProduct.perimeter}</p>
         <p><strong>Corte do Perímetro:</strong> ${selectedProduct.cut}</p>
         <h5>Comentários:</h5>
-        <table>
+        <table class="table">
           <thead>
             <tr>
               <th>Comentário</th>
               <th>Data</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -271,6 +188,25 @@
           </tbody>
         </table>
       `;
+    }
+
+    function removeComment(commentIndex) {
+      var selectedProduct = JSON.parse(document.getElementById("productSelect").value);
+      if (!selectedProduct) {
+        alert("Nenhum produto selecionado.");
+        return;
+      }
+
+      var products = JSON.parse(localStorage.getItem("products")) || [];
+      var productIndex = products.findIndex(function(product) {
+        return product.name === selectedProduct.name && product.perimeter === selectedProduct.perimeter;
+      });
+
+      if (productIndex !== -1) {
+        products[productIndex].comments.splice(commentIndex, 1);
+        localStorage.setItem("products", JSON.stringify(products));
+        showSelectedProduct();
+      }
     }
 
     function removeSelectedProduct() {
@@ -288,12 +224,7 @@
       localStorage.setItem("products", JSON.stringify(updatedProducts));
       loadProducts();
       document.getElementById("selectedProductDetails").innerHTML = "";
-
-      var removeFeedback = document.getElementById("removeFeedback");
-      removeFeedback.style.display = "block";
-      setTimeout(function() {
-        removeFeedback.style.display = "none";
-      }, 3000);
+      alert("Produto removido com sucesso!");
     }
   </script>
 </body>
